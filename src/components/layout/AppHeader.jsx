@@ -1,6 +1,8 @@
-import { Layout, Select, Space, Button } from "antd";
+import { Layout, Select, Space, Button, Modal, Drawer } from "antd";
 import { useCrypto } from "../../context/crypto-context.jsx";
 import { useState, useEffect } from "react";
+import CoinInfoModal from "../CoinInfoModal.jsx";
+import AddAssetForm from "../AddAssetForm.jsx";
 
 const headerStyle = {
     width: '100%',
@@ -15,6 +17,9 @@ const headerStyle = {
 export default function AppHeader() {
     const { crypto } = useCrypto();
     const [selectOpen, setSelectOpen] = useState(false);
+    const [modal, setModal] = useState(false);
+    const [coin, setCoin] = useState(null);
+    const [drawer, setDrawer] = useState(false);
 
     useEffect(() => {
         const keypress = (event) => {
@@ -27,20 +32,18 @@ export default function AppHeader() {
     }, []);
 
     const handleSelect = (value) => {
-        console.log("Selected ID:", value);
+        setCoin(crypto.find((c) => c.id === value));
+        setModal(true);
     };
 
     return (
         <Layout.Header style={headerStyle}>
             <Select
-                showSearch
+                open={selectOpen}
                 style={{ width: 250 }}
                 onDropdownVisibleChange={(open) => setSelectOpen(open)}
-                placeholder="Press / to search"
+                value="Click to select"
                 optionLabelProp="label"
-                filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
                 options={crypto.map((coin) => ({
                     label: coin.name,
                     value: coin.id,
@@ -58,7 +61,26 @@ export default function AppHeader() {
                     </Space>
                 )}
             />
-            <Button type="primary">Add Asset</Button>
+            <Button type="primary" onClick={() => setDrawer(true)}>Add Asset</Button>
+            <Modal
+                closable={{ 'aria-label': 'Custom Close Button' }}
+                open={modal}
+                onCancel={() => setModal(false)}
+                footer={null}>
+                <CoinInfoModal coin={coin} />
+            </Modal>
+
+            <Drawer
+                width={600}
+                title="Add Asset"
+                closable={{ 'aria-label': 'Close Button' }}
+                onClose={() => setDrawer(false)}
+                open={drawer}
+                destroyOnClose={true}
+            >
+                <AddAssetForm onClose={() => setDrawer(false)} />
+            </Drawer>
+
         </Layout.Header>
     );
 }

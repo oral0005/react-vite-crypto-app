@@ -1,6 +1,6 @@
 import {createContext, useState, useEffect, useContext} from 'react';
 import {fetchCryptoAssets, fetchCryptoData} from "../api.js";
-import {capitalize , percentDifference} from "../utils.js";
+import {percentDifference} from "../utils.js";
 
 export const CryptoContext = createContext({
     assets: [],
@@ -8,6 +8,18 @@ export const CryptoContext = createContext({
     loading: false,
 })
 
+function mapAssets(assets, serverCoins) {
+    return assets.map(asset => {
+        const coin = serverCoins.find((c) => c.id === asset.id);
+        return {
+            grow: asset.price < coin.price,
+            growPercent: percentDifference(asset.price, coin.price),
+            totalAmount: asset.amount * coin.price,
+            totalProfit: asset.amount * coin.price - asset.amount * asset.price,
+            ...asset,
+        };
+    })
+}
 
 export function CryptoContextProvider({children}) {
     const [loading, setLoading] = useState(false);
@@ -18,24 +30,13 @@ export function CryptoContextProvider({children}) {
         async function preload() {
             try {
                 setLoading(true);
-                const data = await fetchCryptoData(); //
-                const assets = await fetchCryptoAssets(); //
+                const { result: serverCoins } = await fetchCryptoData();
+                const assets = await fetchCryptoAssets();
 
-                const serverCoins = data.result;
-
-                setCryptoAssets(assets.map(asset => {
-                    const coin = serverCoins.find((c) => c.id === asset.id);
-                    return {
-                        grow: asset.price < coin.price,
-                        growPercent: percentDifference(asset.price, coin.price),
-                        totalAmount: asset.amount * coin.price,
-                        totalProfit: asset.amount * coin.price - asset.amount * asset.price,
-                        ...asset,
-                    };
-                }));
+                setCryptoAssets(mapAssets(assets, serverCoins));
                 setCryptoData(serverCoins);
             } catch (err) {
-                console.error("Ошибка в AppSider:", err);
+                console.error("Ошибка в CryptoContext:", err);
             } finally {
                 setLoading(false);
             }
@@ -43,16 +44,16 @@ export function CryptoContextProvider({children}) {
         preload();
     }, []);
 
+    function addAsset(newAsset) {
+        setCryptoAssets(prev => mapAssets([...prev, newAsset], cryptoData));
+    }
 
     return (
-        <CryptoContext.Provider value={{ loading, crypto: cryptoData, assets: cryptoAssets }}>
+        <CryptoContext.Provider value={{ loading, crypto: cryptoData, assets: cryptoAssets , addAsset }}>
             {children}
         </CryptoContext.Provider>
     )
-
 }
-
-export default { CryptoContext };
 
 export function useCrypto(){
     return useContext(CryptoContext);
