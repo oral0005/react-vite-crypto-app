@@ -1,5 +1,10 @@
-import { DatePicker } from 'antd';
+import {CryptoContextProvider} from "./context/crypto-context.jsx";
+import AppLayout from "./components/layout/AppLayout.jsx";
 
 export default function App() {
-  return <DatePicker />;
+  return (
+      <CryptoContextProvider>
+          <AppLayout/>
+      </CryptoContextProvider>
+  )
 }
